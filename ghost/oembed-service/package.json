@@ -27,7 +27,7 @@
     "@tryghost/logging": "2.4.4",
     "@tryghost/tpl": "0.1.24",
     "charset": "1.0.1",
-    "cheerio": "0.22.0",
+    "cheerio": "1.0.0",
     "iconv-lite": "0.6.3",
     "lodash": "4.17.21",
     "metascraper": "5.37.1",
