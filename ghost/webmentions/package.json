@@ -27,6 +27,6 @@
   "dependencies": {
     "@tryghost/errors": "1.2.24",
     "@tryghost/logging": "2.4.4",
-    "cheerio": "0.22.0"
+    "cheerio": "1.0.0"
   }
 }
