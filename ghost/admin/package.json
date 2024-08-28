@@ -180,7 +180,7 @@
   "dependencies": {
     "jose": "4.14.6",
     "path-browserify": "1.0.1",
-    "webpack": "5.88.2"
+    "webpack": "5.94.0"
   },
   "nx": {
     "targets": {
