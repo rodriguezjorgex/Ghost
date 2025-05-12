@@ -30,8 +30,8 @@
     "@breejs/later": "4.1.0",
     "@tryghost/errors": "1.2.24",
     "@tryghost/logging": "2.4.4",
-    "bree": "6.5.0",
-    "cron-validate": "1.4.5",
+    "bree": "7.0.0",
+    "cron-validate": "1.5.0",
     "fastq": "1.15.0",
     "p-wait-for": "3.2.0"
   }
