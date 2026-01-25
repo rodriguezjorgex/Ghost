@@ -31,7 +31,7 @@
     "@tryghost/logging": "2.4.4",
     "@tryghost/member-events": "0.0.0",
     "leaky-bucket": "2.2.0",
-    "lodash": "4.17.21",
+    "lodash": "4.17.23",
     "stripe": "8.222.0"
   }
 }
