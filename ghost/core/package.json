@@ -197,7 +197,7 @@
     "js-yaml": "4.1.0",
     "jsdom": "22.1.0",
     "json-stable-stringify": "1.0.2",
-    "jsonpath": "1.1.1",
+    "jsonpath": "1.2.0",
     "jsonwebtoken": "8.5.1",
     "juice": "9.1.0",
     "keypair": "1.0.4",
