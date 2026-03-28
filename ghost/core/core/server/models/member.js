@@ -1,20 +1,59 @@
 const ghostBookshelf = require('./base');
-const uuid = require('uuid');
+const crypto = require('crypto');
 const _ = require('lodash');
 const config = require('../../shared/config');
-const {gravatar} = require('../lib/image');
+const {MemberCommentingCodec} = require('../services/members/commenting');
 
 const Member = ghostBookshelf.Model.extend({
     tableName: 'members',
 
+    actionsCollectCRUD: true,
+    actionsResourceType: 'member',
+    actionsExtraContext: ['commenting'],
+
     defaults() {
         return {
             status: 'free',
-            uuid: uuid.v4(),
+            uuid: crypto.randomUUID(),
+            transient_id: crypto.randomUUID(),
             email_count: 0,
             email_opened_count: 0,
             enable_comment_notifications: true
         };
+    },
+
+    /**
+     * Transform data coming from the database.
+     * Parses the `commenting` JSON string into a MemberCommenting domain object
+     * and computes the `can_comment` boolean.
+     */
+    parse(attrs) {
+        attrs = ghostBookshelf.Model.prototype.parse.call(this, attrs);
+
+        if (attrs.commenting !== undefined) {
+            const commenting = MemberCommentingCodec.parse(attrs.commenting);
+            attrs.commenting = commenting;
+            attrs.can_comment = commenting.canComment;
+        }
+
+        return attrs;
+    },
+
+    /**
+     * Transform data going to the database.
+     * Converts the MemberCommenting domain object back to a JSON string
+     * and removes the computed `can_comment` field.
+     */
+    format(attrs) {
+        // Remove computed field - it should not be persisted
+        delete attrs.can_comment;
+
+        // Convert MemberCommenting domain object to JSON string for storage
+        if (attrs.commenting) {
+            attrs.commenting = MemberCommentingCodec.format(attrs.commenting);
+        }
+
+        return ghostBookshelf.Model.prototype.format.call(this, attrs);
     },
 
     filterExpansions() {
@@ -373,8 +412,10 @@ const Member = ghostBookshelf.Model.extend({
     },
 
     searchQuery: function searchQuery(queryBuilder, query) {
-        queryBuilder.where('members.name', 'like', `%${query}%`);
-        queryBuilder.orWhere('members.email', 'like', `%${query}%`);
+        queryBuilder.where(function () {
+            this.where('members.name', 'like', `%${query}%`)
+                .orWhere('members.email', 'like', `%${query}%`);
+        });
     },
 
     orderRawQuery(field, direction) {
@@ -386,15 +427,20 @@ const Member = ghostBookshelf.Model.extend({
     },
 
     toJSON(unfilteredOptions) {
-        const options = Member.filterOptions(unfilteredOptions, 'toJSON');
-        const attrs = ghostBookshelf.Model.prototype.toJSON.call(this, options);
+        const attrs = ghostBookshelf.Model.prototype.toJSON.call(this, unfilteredOptions);
 
         // Inject a computed avatar url. Uses gravatar's default ?d= query param
         // to serve a blank image if there is no gravatar for the member's email.
         // Will not use gravatar if privacy.useGravatar is false in config
         attrs.avatar_image = null;
         if (attrs.email && !config.isPrivacyDisabled('useGravatar')) {
+            const {gravatar} = require('../lib/image');
             attrs.avatar_image = gravatar.url(attrs.email, {size: 250, default: 'blank'});
+        }
+
+        // Serialize commenting domain object to API format
+        if (attrs.commenting) {
+            attrs.commenting = MemberCommentingCodec.toJSON(attrs.commenting);
         }
 
         return attrs;

@@ -1,15 +1,15 @@
 const sinon = require('sinon');
-const assert = require('assert/strict');
+const assert = require('node:assert/strict');
 const mail = require('../../../../../core/server/services/mail');
-const SettingsBreadService = require('../../../../../core/server/services/settings/SettingsBREADService');
+const SettingsBreadService = require('../../../../../core/server/services/settings/settings-bread-service');
 const urlUtils = require('../../../../../core/shared/url-utils.js');
 const {mockManager} = require('../../../../utils/e2e-framework');
-const should = require('should');
-
+const emailAddress = require('../../../../../core/server/services/email-address');
 describe('UNIT > Settings BREAD Service:', function () {
     let emailMockReceiver;
 
     beforeEach(function () {
+        emailAddress.init();
         emailMockReceiver = mockManager.mockMail();
     });
 
@@ -187,6 +187,17 @@ describe('UNIT > Settings BREAD Service:', function () {
                     isSet() {
                         return false;
                     }
+                },
+                emailAddressService: {
+                    service: {
+                        validate() {
+                            return {
+                                allowed: true,
+                                verificationEmailRequired: true
+                            };
+                        },
+                        defaultFromAddress: 'noreply@example.com'
+                    }
                 }
             });
 
@@ -260,7 +271,7 @@ describe('UNIT > Settings BREAD Service:', function () {
                 labsService: {}
             });
 
-            await should(defaultSettingsManager.verifyKeyUpdate('test')).rejectedWith(/Not allowed to update this setting key via tokens/);
+            await assert.rejects(defaultSettingsManager.verifyKeyUpdate('test'), /Not allowed to update this setting key via tokens/);
         });
     });
 });

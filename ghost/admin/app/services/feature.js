@@ -40,6 +40,7 @@ export function feature(name, options = {}) {
 
 @classic
 export default class FeatureService extends Service {
+    @service ghostPaths;
     @service lazyLoader;
     @service notifications;
     @service session;
@@ -59,27 +60,14 @@ export default class FeatureService extends Service {
     @feature('referralInviteDismissed', {user: true}) referralInviteDismissed;
 
     // labs flags
-    @feature('urlCache') urlCache;
-    @feature('lexicalEditor') lexicalEditor;
-    @feature('lexicalMultiplayer') lexicalMultiplayer;
-    @feature('audienceFeedback') audienceFeedback;
-    @feature('webmentions') webmentions;
-    @feature('websockets') websockets;
     @feature('stripeAutomaticTax') stripeAutomaticTax;
     @feature('emailCustomization') emailCustomization;
-    @feature('i18n') i18n;
-    @feature('announcementBar') announcementBar;
-    @feature('signupCard') signupCard;
-    @feature('signupForm') signupForm;
-    @feature('collections') collections;
-    @feature('adminXSettings') adminXSettings;
-    @feature('mailEvents') mailEvents;
-    @feature('collectionsCard') collectionsCard;
     @feature('importMemberTier') importMemberTier;
-    @feature('tipsAndDonations') tipsAndDonations;
-    @feature('recommendations') recommendations;
     @feature('lexicalIndicators') lexicalIndicators;
-
+    @feature('editorExcerpt') editorExcerpt;
+    @feature('transistor') transistor;
+    @feature('tagsX') tagsX;
+    @feature('commentModeration') commentModeration;
     _user = null;
 
     @computed('settings.labs')
@@ -102,6 +90,13 @@ export default class FeatureService extends Service {
         } catch (e) {
             return {};
         }
+    }
+
+    get inAdminForward() {
+        // Detect if Ember is running inside the React admin shell
+        // In React shell: Ember renders to #ember-app
+        // Standalone: Ember renders to body (no #ember-app element)
+        return document.querySelector('#ember-app') !== null;
     }
 
     fetch() {
@@ -155,11 +150,14 @@ export default class FeatureService extends Service {
             nightShift = enabled || this.nightShift;
         }
 
+        document.documentElement.classList.toggle('dark', nightShift ?? false);
+
         return this.lazyLoader.loadStyle('dark', 'assets/ghost-dark.css', true).then(() => {
             $('link[title=dark]').prop('disabled', !nightShift);
         }).catch(() => {
             //TODO: Also disable toggle from settings and Labs hover
             $('link[title=dark]').prop('disabled', true);
+            document.documentElement.classList.remove('dark');
         });
     }
 }

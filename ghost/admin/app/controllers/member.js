@@ -1,6 +1,8 @@
 import Controller, {inject as controller} from '@ember/controller';
 import DeleteMemberModal from '../components/members/modals/delete-member';
+import DisableCommentingModal from '../components/members/modals/disable-commenting';
 import EmberObject, {action, defineProperty} from '@ember/object';
+import LogoutMemberModal from '../components/members/modals/logout-member';
 import boundOneWay from 'ghost-admin/utils/bound-one-way';
 import moment from 'moment-timezone';
 import {inject as service} from '@ember/service';
@@ -11,12 +13,17 @@ const SCRATCH_PROPS = ['name', 'email', 'note'];
 
 export default class MemberController extends Controller {
     @controller members;
+    @service ajax;
     @service session;
     @service dropdown;
+    @service feature;
+    @service ghostPaths;
     @service membersStats;
+    @service membersCountCache;
     @service modals;
     @service notifications;
     @service router;
+    @service labelsManager;
     @service store;
 
     queryParams = [
@@ -138,9 +145,50 @@ export default class MemberController extends Controller {
             afterDelete: () => {
                 this.membersStats.invalidate();
                 this.members.refreshData();
+                this.membersCountCache.clear();
                 this.transitionToRoute('members');
             }
         });
+    }
+
+    @action
+    confirmLogoutMember() {
+        this.modals.open(LogoutMemberModal, {
+            member: this.member,
+            afterLogout: () => {
+                this.members.refreshData();
+            }
+        });
+    }
+
+    @action
+    confirmDisableCommenting() {
+        this.modals.open(DisableCommentingModal, {
+            member: this.member,
+            afterDisable: () => {
+                this.fetchMemberTask.perform(this.member.id);
+            }
+        });
+    }
+
+    @action
+    async confirmEnableCommenting() {
+        this.dropdown.closeDropdowns();
+        try {
+            const url = this.ghostPaths.url.api('members', this.member.id, 'commenting', 'enable');
+            await this.ajax.post(url);
+
+            // Invalidate React Query cache so comments list reflects changes
+            if (window.adminXQueryClient) {
+                window.adminXQueryClient.invalidateQueries({queryKey: ['CommentsResponseType']});
+                window.adminXQueryClient.invalidateQueries({queryKey: ['MembersResponseType']});
+            }
+
+            await this.fetchMemberTask.perform(this.member.id);
+            this.notifications.showNotification(`Commenting has been enabled for ${this.member.name || this.member.email}.`, {type: 'success'});
+        } catch (e) {
+            this.notifications.showAPIError(e, {key: 'member.enable-commenting'});
+        }
     }
 
     @action
@@ -170,11 +218,18 @@ export default class MemberController extends Controller {
         Object.assign(member, scratchProps);
 
         try {
+            const clearCountCache = member.isNew; // clear cache for adding new members so the count is updated without waiting for a refresh
+
             yield member.save();
             member.updateLabels();
+            member.labels.forEach(label => this.labelsManager.addLabel(label));
             this.members.refreshData();
 
             this.setInitialRelationshipValues();
+
+            if (clearCountCache) {
+                this.membersCountCache.clear();
+            }
 
             // replace 'member.new' route with 'member' route
             this.replaceRoute('member', member);
@@ -193,6 +248,7 @@ export default class MemberController extends Controller {
                         member.hasValidated.pushObject(payloadError.property);
                     }
                 }
+                return;
             }
 
             throw error;

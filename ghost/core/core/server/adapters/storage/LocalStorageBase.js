@@ -6,7 +6,6 @@ const fs = require('fs-extra');
 const path = require('path');
 const tpl = require('@tryghost/tpl');
 const errors = require('@tryghost/errors');
-const constants = require('@tryghost/constants');
 const urlUtils = require('../../../shared/url-utils');
 const StorageBase = require('ghost-storage-base');
 
@@ -50,7 +49,12 @@ class LocalStorageBase extends StorageBase {
     async save(file, targetDir) {
         let targetFilename;
 
-        // NOTE: the base implementation of `getTargetDir` returns the format this.storagePath/YYYY/MM
+        // Supports relative paths (preferred) and absolute paths (legacy)
+        // TODO: remove absolute path support once all callers pass relative paths
+        if (targetDir && !targetDir.startsWith(this.storagePath)) {
+            targetDir = path.join(this.storagePath, targetDir);
+        }
+
         targetDir = targetDir || this.getTargetDir(this.storagePath);
 
         const filename = await this.getUniqueFileName(file, targetDir);
@@ -58,7 +62,15 @@ class LocalStorageBase extends StorageBase {
         targetFilename = filename;
         await fs.mkdirs(targetDir);
 
-        await fs.copy(file.path, targetFilename);
+        try {
+            await fs.copy(file.path, targetFilename);
+        } catch (err) {
+            if (err.code === 'ENAMETOOLONG') {
+                throw new errors.BadRequestError({err});
+            }
+
+            throw err;
+        }
 
         // The src for the image must be in URI format, not a file system path, which in Windows uses \
         // For local file system storage can use relative path so add a slash
@@ -73,12 +85,34 @@ class LocalStorageBase extends StorageBase {
     }
 
     /**
-     *
+     * Saves a buffer in the targetPath
+     * @param {Buffer} buffer is an instance of Buffer
+     * @param {String} targetPath relative path NOT including storage path to which the buffer should be written
+     * @returns {Promise<String>} a URL to retrieve the data
+     */
+    async saveRaw(buffer, targetPath) {
+        const storagePath = path.join(this.storagePath, targetPath);
+        const targetDir = path.dirname(storagePath);
+
+        await fs.mkdirs(targetDir);
+        await fs.writeFile(storagePath, buffer);
+
+        // For local file system storage can use relative path so add a slash
+        const fullUrl = (
+            urlUtils.urlJoin('/', urlUtils.getSubdir(),
+                this.staticFileURLPrefix,
+                targetPath)
+        ).replace(new RegExp(`\\${path.sep}`, 'g'), '/');
+
+        return fullUrl;
+    }
+
+    /**
      * @param {String} url full url under which the stored content is served, result of save method
-     * @returns {String} path under which the content is stored
+     * @returns {String} relative path under which the content is stored
      */
     urlToPath(url) {
-        let filePath;
+        let relativePath;
 
         const prefix = urlUtils.urlJoin('/',
             urlUtils.getSubdir(),
@@ -87,22 +121,32 @@ class LocalStorageBase extends StorageBase {
 
         if (url.startsWith(this.staticFileUrl)) {
             // CASE: full path that includes the site url
-            filePath = url.replace(this.staticFileUrl, '');
-            filePath = path.join(this.storagePath, filePath);
+            relativePath = url.replace(this.staticFileUrl, '');
         } else if (url.startsWith(prefix)) {
             // CASE: The result of the save method doesn't include the site url. So we need to handle this case.
-            filePath = url.replace(prefix, '');
-            filePath = path.join(this.storagePath, filePath);
+            relativePath = url.replace(prefix, '');
         } else {
             throw new errors.IncorrectUsageError({
                 message: tpl(messages.invalidUrlParameter, {url})
             });
         }
 
-        return filePath;
+        const normalized = path.posix.normalize(relativePath.replace(/^\//, ''));
+        if (normalized.startsWith('..')) {
+            throw new errors.IncorrectUsageError({
+                message: tpl(messages.invalidUrlParameter, {url})
+            });
+        }
+
+        return normalized;
     }
 
     exists(fileName, targetDir) {
+        // Supports relative paths (preferred) and absolute paths (legacy)
+        // TODO: remove absolute path support once all callers pass relative paths
+        if (targetDir && !targetDir.startsWith(this.storagePath)) {
+            targetDir = path.join(this.storagePath, targetDir);
+        }
         const filePath = path.join(targetDir || this.storagePath, fileName);
 
         return fs.stat(filePath)
@@ -128,7 +172,7 @@ class LocalStorageBase extends StorageBase {
             return serveStatic(
                 storagePath,
                 {
-                    maxAge: constants.ONE_YEAR_MS,
+                    maxAge: (365 * 24 * 60 * 60 * 1000), // 1 year in ms
                     fallthrough: false
                 }
             )(req, res, (err) => {
@@ -149,6 +193,10 @@ class LocalStorageBase extends StorageBase {
                         return next(new errors.NoPermissionError({err: err}));
                     }
 
+                    if (err.name === 'RangeNotSatisfiableError') {
+                        return next(new errors.RangeNotSatisfiableError({err}));
+                    }
+
                     return next(new errors.InternalServerError({err: err}));
                 }
 
@@ -162,7 +210,12 @@ class LocalStorageBase extends StorageBase {
      * @returns {Promise.<*>}
      */
     async delete(fileName, targetDir) {
-        const filePath = path.join(targetDir, fileName);
+        // Supports relative paths (preferred) and absolute paths (legacy)
+        // TODO: remove absolute path support once all callers pass relative paths
+        if (targetDir && !targetDir.startsWith(this.storagePath)) {
+            targetDir = path.join(this.storagePath, targetDir);
+        }
+        const filePath = path.join(targetDir || this.storagePath, fileName);
         return await fs.remove(filePath);
     }
 

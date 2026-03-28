@@ -8,18 +8,18 @@ const clean = require('../utils/clean');
 const date = require('../utils/date');
 const extraAttrs = require('../utils/extra-attrs');
 const gating = require('../utils/post-gating');
+const previewRendering = require('../utils/preview-rendering');
 const url = require('../utils/url');
 
 const utils = require('../../../index');
 
 const postsMetaSchema = require('../../../../../../data/schema').tables.posts_meta;
 
-const getPostServiceInstance = require('../../../../../../services/posts/posts-service');
+const getPostServiceInstance = require('../../../../../../services/posts/posts-service-instance');
 const postsService = getPostServiceInstance();
 
 const commentsService = require('../../../../../../services/comments');
 const memberAttribution = require('../../../../../../services/member-attribution');
-const labs = require('../../../../../../../shared/labs');
 
 module.exports = async (model, frame, options = {}) => {
     const {tiers: tiersData} = options || {};
@@ -66,6 +66,10 @@ module.exports = async (model, frame, options = {}) => {
             jsonModel.tiers = tiersData ? tiersData.filter(t => t.type === 'paid') : [];
         }
 
+        if (jsonModel.visibility === 'tiers' && Array.isArray(jsonModel.tiers)) {
+            jsonModel.tiers = jsonModel.tiers.filter(t => t.type === 'paid');
+        }
+
         if (!['members', 'public', 'paid', 'tiers'].includes(jsonModel.visibility)) {
             const tiers = await postsService.getProductsFromVisibilityFilter(jsonModel.visibility);
 
@@ -77,6 +81,8 @@ module.exports = async (model, frame, options = {}) => {
     if (utils.isContentAPI(frame)) {
         date.forPost(jsonModel);
         gating.forPost(jsonModel, frame);
+        previewRendering.forPost(jsonModel, frame);
+
         if (jsonModel.access) {
             if (commentsService?.api?.enabled !== 'off') {
                 jsonModel.comments = true;
@@ -87,13 +93,13 @@ module.exports = async (model, frame, options = {}) => {
             jsonModel.comments = false;
         }
 
-        // Add  outbound link tags
-        if (labs.isSet('outboundLinkTagging')) {
-            // Only add it in the flag! Without the flag we only add it to emails.
-            if (jsonModel.html) {
-                // Only set if HTML was requested
-                jsonModel.html = await memberAttribution.outboundLinkTagger.addToHtml(jsonModel.html);
-            }
+        // Strip any source formats
+        delete jsonModel.mobiledoc;
+        delete jsonModel.lexical;
+
+        // Add outbound link tagging if we have the HTML
+        if (jsonModel.html) {
+            jsonModel.html = await memberAttribution.outboundLinkTagger.addToHtml(jsonModel.html);
         }
     }
 

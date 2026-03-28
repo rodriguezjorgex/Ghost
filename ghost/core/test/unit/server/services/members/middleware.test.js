@@ -1,4 +1,4 @@
-const should = require('should');
+const assert = require('node:assert/strict');
 const sinon = require('sinon');
 
 const urlUtils = require('../../../../../core/shared/url-utils');
@@ -55,8 +55,8 @@ describe('Members Service Middleware', function () {
             await membersMiddleware.createSessionFromMagicLink(req, res, next);
 
             // Check behavior
-            next.calledOnce.should.be.true();
-            next.firstCall.args.should.be.an.Array().with.lengthOf(0);
+            sinon.assert.calledOnce(next);
+            assert.deepEqual(next.firstCall.args, []);
         });
 
         it('redirects correctly on success', async function () {
@@ -77,9 +77,9 @@ describe('Members Service Middleware', function () {
             await membersMiddleware.createSessionFromMagicLink(req, res, next);
 
             // Check behavior
-            next.calledOnce.should.be.false();
-            res.redirect.calledOnce.should.be.true();
-            res.redirect.firstCall.args[0].should.eql('/blah/?action=signup&success=true');
+            sinon.assert.notCalled(next);
+            sinon.assert.calledOnce(res.redirect);
+            assert.equal(res.redirect.firstCall.args[0], '/blah/?action=signup&success=true');
         });
 
         it('redirects correctly on failure', async function () {
@@ -93,9 +93,9 @@ describe('Members Service Middleware', function () {
             await membersMiddleware.createSessionFromMagicLink(req, res, next);
 
             // Check behavior
-            next.calledOnce.should.be.false();
-            res.redirect.calledOnce.should.be.true();
-            res.redirect.firstCall.args[0].should.eql('/blah/?action=signup&success=false');
+            sinon.assert.notCalled(next);
+            sinon.assert.calledOnce(res.redirect);
+            assert.equal(res.redirect.firstCall.args[0], '/blah/?action=signup&success=false');
         });
 
         it('redirects free member to custom redirect on signup', async function () {
@@ -116,9 +116,9 @@ describe('Members Service Middleware', function () {
             await membersMiddleware.createSessionFromMagicLink(req, res, next);
 
             // Check behavior
-            next.calledOnce.should.be.false();
-            res.redirect.calledOnce.should.be.true();
-            res.redirect.firstCall.args[0].should.eql('https://custom.com/redirect/');
+            sinon.assert.notCalled(next);
+            sinon.assert.calledOnce(res.redirect);
+            assert.equal(res.redirect.firstCall.args[0], 'https://custom.com/redirect/');
         });
 
         it('redirects paid member to custom redirect on signup', async function () {
@@ -139,9 +139,9 @@ describe('Members Service Middleware', function () {
             await membersMiddleware.createSessionFromMagicLink(req, res, next);
 
             // Check behavior
-            next.calledOnce.should.be.false();
-            res.redirect.calledOnce.should.be.true();
-            res.redirect.firstCall.args[0].should.eql('https://custom.com/paid/');
+            sinon.assert.notCalled(next);
+            sinon.assert.calledOnce(res.redirect);
+            assert.equal(res.redirect.firstCall.args[0], 'https://custom.com/paid/');
         });
 
         it('redirects member to referrer param path on signin if it is on the site', async function () {
@@ -155,9 +155,9 @@ describe('Members Service Middleware', function () {
             await membersMiddleware.createSessionFromMagicLink(req, res, next);
 
             // Check behavior
-            next.calledOnce.should.be.false();
-            res.redirect.calledOnce.should.be.true();
-            res.redirect.firstCall.args[0].should.eql('https://site.com/blah/my-post/?action=signin&success=true#comment-123');
+            sinon.assert.notCalled(next);
+            sinon.assert.calledOnce(res.redirect);
+            assert.equal(res.redirect.firstCall.args[0], 'https://site.com/blah/my-post/?action=signin&success=true#comment-123');
         });
 
         it('redirects member to referrer param path on signup if it is on the site', async function () {
@@ -171,9 +171,9 @@ describe('Members Service Middleware', function () {
             await membersMiddleware.createSessionFromMagicLink(req, res, next);
 
             // Check behavior
-            next.calledOnce.should.be.false();
-            res.redirect.calledOnce.should.be.true();
-            res.redirect.firstCall.args[0].should.eql('https://site.com/blah/my-post/?action=signup&success=true#comment-123');
+            sinon.assert.notCalled(next);
+            sinon.assert.calledOnce(res.redirect);
+            assert.equal(res.redirect.firstCall.args[0], 'https://site.com/blah/my-post/?action=signup&success=true#comment-123');
         });
 
         it('does not redirect to referrer param if it is external', async function () {
@@ -187,9 +187,116 @@ describe('Members Service Middleware', function () {
             await membersMiddleware.createSessionFromMagicLink(req, res, next);
 
             // Check behavior
-            next.calledOnce.should.be.false();
-            res.redirect.calledOnce.should.be.true();
-            res.redirect.firstCall.args[0].should.eql('/blah/?action=signin&success=true');
+            sinon.assert.notCalled(next);
+            sinon.assert.calledOnce(res.redirect);
+            assert.equal(res.redirect.firstCall.args[0], '/blah/?action=signin&success=true');
+        });
+    });
+
+    describe('updateMemberNewsletters', function () {
+        // let oldMembersService;
+        let req;
+        let res;
+
+        before(function () {
+            models.init();
+        });
+
+        beforeEach(function () {
+            req = {body: {newsletters: [], enable_comment_notifications: null}};
+            res = {writeHead: sinon.stub(), end: sinon.stub()};
+        });
+
+        afterEach(function () {
+            sinon.restore();
+        });
+
+        // auth happens prior to this middleware
+        it('returns 404 if no member uuid is part of the request', async function () {
+            req.query = {};
+
+            // Call the middleware
+            await membersMiddleware.updateMemberNewsletters(req, res);
+
+            // Check behavior
+            sinon.assert.calledOnce(res.writeHead);
+            assert.equal(res.writeHead.firstCall.args[0], 404);
+            sinon.assert.calledOnce(res.end);
+            assert.equal(res.end.firstCall.args[0], 'Email address not found.');
+        });
+
+        // auth happens prior to this middleware
+        it('returns 404 if member uuid is not found', async function () {
+            req.query = {uuid: 'test'};
+            sinon.stub(membersService, 'api').get(() => {
+                return {
+                    members: {
+                        get: sinon.stub().resolves()
+                    }
+                };
+            });
+
+            // Call the middleware
+            await membersMiddleware.updateMemberNewsletters(req, res);
+
+            // Check behavior
+            sinon.assert.calledOnce(res.writeHead);
+            assert.equal(res.writeHead.firstCall.args[0], 404);
+            sinon.assert.calledOnce(res.end);
+            assert.equal(res.end.firstCall.args[0], 'Email address not found.');
+        });
+
+        it('attempts to update newsletters', async function () {
+            res.json = sinon.stub();
+            // member data appended if authed via uuid+key or session
+            req.member = {
+                id: 'test',
+                email: 'test@email.com',
+                name: 'Test Name',
+                newsletters: [],
+                enable_comment_notifications: false,
+                status: 'free'
+            };
+            sinon.stub(membersService, 'api').get(() => {
+                return {
+                    members: {
+                        update: sinon.stub().resolves({
+                            ...req.member,
+                            toJSON: () => JSON.stringify(req.member)
+                        })
+                    }
+                };
+            });
+            await membersMiddleware.updateMemberNewsletters(req, res);
+            // the stubbing of the api is difficult to test with the current design, so we just check that the response is sent
+            sinon.assert.calledOnce(res.json);
+        });
+
+        it('returns 400 on error', async function () {
+            // use a malformed request to trigger an error
+            // member data appended if authed via uuid+key or session
+            req.member = {
+                id: undefined,
+                email: 'test@email.com',
+                name: 'Test Name',
+                newsletters: [],
+                enable_comment_notifications: false,
+                status: 'free'
+            };
+            sinon.stub(membersService, 'api').get(() => {
+                return {
+                    members: {
+                        update: sinon.stub().rejects(new Error('Test Error'))
+                    }
+                };
+            });
+            await membersMiddleware.updateMemberNewsletters(req, res);
+
+            // Check behavior
+            sinon.assert.calledOnce(res.writeHead);
+            assert.equal(res.writeHead.firstCall.args[0], 400);
+            sinon.assert.calledOnce(res.end);
+            assert.equal(res.end.firstCall.args[0], 'Failed to update newsletters');
         });
     });
 });

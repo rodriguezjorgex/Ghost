@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/ember';
 import AuthenticatedRoute from 'ghost-admin/routes/authenticated';
 import ConfirmUnsavedChangesModal from '../components/modals/confirm-unsaved-changes';
 import {action} from '@ember/object';
@@ -24,7 +25,7 @@ export default class TagRoute extends AuthenticatedRoute {
         this._requiresBackgroundRefresh = false;
 
         if (params.tag_slug) {
-            return this.store.queryRecord('tag', {slug: params.tag_slug});
+            return this.store.queryRecord('tag', {slug: params.tag_slug, include: 'count.posts'});
         } else {
             return this.store.createRecord('tag');
         }
@@ -77,6 +78,7 @@ export default class TagRoute extends AuthenticatedRoute {
 
     async confirmUnsavedChanges() {
         if (this.controller.model?.hasDirtyAttributes) {
+            Sentry.captureMessage('showing unsaved changes modal for tags route');
             this.confirmModal = this.modals
                 .open(ConfirmUnsavedChangesModal)
                 .finally(() => {

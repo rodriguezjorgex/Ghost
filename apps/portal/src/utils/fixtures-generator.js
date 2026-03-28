@@ -13,6 +13,14 @@ export function objectId() {
     }).toLowerCase();
 }
 
+export function generateUuid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 export function getSiteData({
     title = 'The Blueprint',
     description = 'Thoughts, stories and ideas.',
@@ -28,7 +36,6 @@ export function getSiteData({
     portalProducts = products.map(p => p.id),
     accentColor: accent_color = '#45C32E',
     portalPlans: portal_plans = ['free', 'monthly', 'yearly'],
-    allowSelfSignup: allow_self_signup = true,
     membersSignupAccess: members_signup_access = 'all',
     freePriceName: free_price_name = 'Free',
     freePriceDescription: free_price_description = 'Free preview',
@@ -39,7 +46,9 @@ export function getSiteData({
     portalButtonSignupText: portal_button_signup_text = 'Subscribe now',
     portalButtonStyle: portal_button_style = 'icon-and-text',
     membersSupportAddress: members_support_address = 'support@example.com',
+    editorDefaultEmailRecipients: editor_default_email_recipients = 'visibility',
     newsletters = [],
+    posts = getPostsData(),
     commentsEnabled,
     recommendations = [],
     recommendationsEnabled
@@ -54,7 +63,6 @@ export function getSiteData({
         plans,
         products,
         portal_products: portalProducts,
-        allow_self_signup,
         members_signup_access,
         free_price_name,
         free_price_description,
@@ -66,10 +74,12 @@ export function getSiteData({
         portal_button_signup_text,
         portal_button_style,
         members_support_address,
-        comments_enabled: !!commentsEnabled,
+        comments_enabled: commentsEnabled !== 'off',
         newsletters,
         recommendations,
-        recommendations_enabled: !!recommendationsEnabled
+        recommendations_enabled: !!recommendationsEnabled,
+        editor_default_email_recipients,
+        posts
     };
 }
 
@@ -87,7 +97,8 @@ export function getOfferData({
     currency = null,
     status = 'active',
     tierId = '',
-    tierName = 'Basic'
+    tierName = 'Basic',
+    redemptionType = 'signup'
 } = {}) {
     return {
         id: `offer_${objectId()}`,
@@ -106,7 +117,44 @@ export function getOfferData({
         tier: {
             id: `${tierId}`,
             name: tierName
-        }
+        },
+        redemption_type: redemptionType
+    };
+}
+
+export function getNextPaymentData({
+    originalAmount = 500,
+    amount = 500,
+    interval = 'month',
+    currency = 'USD',
+    discount = null
+} = {}) {
+    return {
+        original_amount: originalAmount,
+        amount,
+        interval,
+        currency,
+        discount
+    };
+}
+
+export function getDiscountData({
+    offerId = `offer_${objectId()}`,
+    start = '2025-01-01T00:00:00.000Z',
+    end = null,
+    duration = 'forever',
+    durationInMonths = null,
+    type = 'percent',
+    amount = 20
+} = {}) {
+    return {
+        offer_id: offerId,
+        start,
+        end,
+        duration,
+        ...(duration === 'repeating' ? {duration_in_months: durationInMonths ?? 1} : {}),
+        type,
+        amount
     };
 }
 
@@ -121,10 +169,11 @@ export function getMemberData({
     email_suppression = {
         suppressed: false,
         info: null
-    }
+    },
+    newsletters = []
 } = {}) {
     return {
-        uuid: `member_${objectId()}`,
+        uuid: generateUuid(),
         email,
         name,
         firstname,
@@ -132,7 +181,70 @@ export function getMemberData({
         subscribed,
         avatar_image,
         subscriptions,
-        email_suppression
+        email_suppression,
+        newsletters
+    };
+}
+
+export function getNewsletterData({
+    id = `${objectId()}`,
+    uuid = `${objectId()}`,
+    name = 'Newsletter',
+    description = 'Newsletter description',
+    slug = 'newsletter',
+    sender_email = null,
+    subscribe_on_signup = true,
+    visibility = 'members',
+    sort_order = 0
+}) {
+    return {
+        id,
+        uuid,
+        name,
+        description,
+        slug,
+        sender_email,
+        subscribe_on_signup,
+        visibility,
+        sort_order
+    };
+}
+
+export function getNewslettersData({numOfNewsletters = 3} = {}) {
+    const newsletters = [];
+    for (let i = 0; i < numOfNewsletters; i++) {
+        newsletters.push(getNewsletterData({
+            name: `Newsletter ${i + 1}`,
+            description: `Newsletter ${i + 1} description`
+        }));
+    }
+    return newsletters.slice(0, numOfNewsletters);
+}
+
+export function getPostsData({numOfPosts = 3} = {}) {
+    const posts = [];
+    for (let i = 0; i < numOfPosts; i++) {
+        posts.push(getPostData({
+            title: `Post ${i + 1}`,
+            slug: `post-${i + 1}`
+        }));
+    }
+    return posts.slice(0, numOfPosts);
+}
+
+export function getPostData({
+    id = `post_${objectId()}`,
+    title = 'Post',
+    excerpt = 'Post excerpt',
+    slug = 'post',
+    featured = false
+} = {}) {
+    return {
+        id,
+        title,
+        excerpt,
+        slug,
+        featured
     };
 }
 
@@ -224,13 +336,16 @@ export function getFreeProduct({
 }
 
 export function getBenefits({numOfBenefits}) {
-    const beenfits = [
-        getBenefitData({name: 'Limited early adopter pricing'}),
-        getBenefitData({name: 'Latest gear reviews'}),
-        getBenefitData({name: 'Weekly email newsletter'}),
-        getBenefitData({name: 'Listen to my podcast'})
+    // Generate a unique suffix for benefit names to avoid clashes across test runs
+    const uniqueId = objectId();
+
+    const benefits = [
+        getBenefitData({name: `Limited early adopter pricing #${uniqueId.substring(0, 6)}`}),
+        getBenefitData({name: `Latest gear reviews #${uniqueId.substring(6, 12)}`}),
+        getBenefitData({name: `Weekly email newsletter #${uniqueId.substring(12, 18)}`}),
+        getBenefitData({name: `Listen to my podcast #${uniqueId.substring(18)}`})
     ];
-    return beenfits.slice(0, numOfBenefits);
+    return benefits.slice(0, numOfBenefits);
 }
 
 export function getBenefitData({
@@ -278,7 +393,10 @@ export function getSubscriptionData({
     priceId: price_id = `price_${objectId()}`,
     startDate: start_date = '2021-10-05T03:18:30.000Z',
     currentPeriodEnd: current_period_end = '2022-10-05T03:18:30.000Z',
-    cancelAtPeriodEnd: cancel_at_period_end = false
+    cancelAtPeriodEnd: cancel_at_period_end = false,
+    trialEndAt: trial_end_at = null,
+    nextPayment: next_payment = null,
+    tier = null
 } = {}) {
     return {
         id,
@@ -301,6 +419,9 @@ export function getSubscriptionData({
         cancel_at_period_end,
         cancellation_reason: null,
         current_period_end,
+        trial_end_at,
+        next_payment,
+        tier,
         price: {
             id: `stripe_price_${objectId()}`,
             price_id,

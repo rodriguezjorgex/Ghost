@@ -26,45 +26,64 @@ The script also adds custom class names to this element for open and close state
 
 Refer the [docs](https://ghost.org/help/setup-members/#customize-portal-settings) to read about ways in which Portal can be customized for your site.
 
-## Basic Setup
+## Develop
 
-This section is mostly relevant for core team only for active Portal development. Always use the unpkg link for testing/using latest released portal script.
+Portal runs automatically when using Ghost's development command from the monorepo root:
+```
+yarn dev
+```
 
-- Run `yarn start:dev` to start Portal in development mode
-- Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-- To use the local Portal script in a local Ghost site
-  - Update `config.local.json` in Ghost repo to add "portal" config pointing to local dev server url as instructed on terminal.
-  - By default, this uses port `5368` for loading local Portal script on Ghost site. It's also possible to specify a custom port when running the script using - `--port=xxxx`.
+This starts all frontend apps (including Portal.)
+---
 
-## Available Scripts
+To run Portal in a standalone fashion, use `yarn start` and open [http://localhost:3000](http://localhost:3000).
 
-In the project directory, you can also run:
+## Build
 
-### `yarn start`
+To create a production minified bundle in `umd/portal.min.js`:
+```
+yarn build
+```
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Test
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+To run tests in watch mode:
+```
+yarn test
+```
 
-Start the portal server when developing Ghost by running Ghost (in root folder) via `yarn dev --all` or `yarn dev --portal`. This will host the portal JavaScript files, and makes sure that Ghost uses these locally hosted assets instead of the ones from the CDN.
+### Ghost e2e browser tests
 
-### `yarn build`
+Portal is primarily tested via Ghost's e2e browser tests, see [our Playwright docs](https://ghost.notion.site/Playwright-Tests-b49ccb6e2b4a40f1a4f8df5261391218) for more details.
 
-Creates the production single minified bundle for external use in `umd/portal.min.js`.  <br />
+1. Run the Ghost e2e tests in the top-level of the monorepo, providing ENV variables for Stripe:
+   ```
+   STRIPE_ACCOUNT_ID=acct_xxx STRIPE_PUBLISHABLE_KEY=pk_test_xxx STRIPE_SECRET_KEY=sk_test_xxx yarn test:browser
+   ```
 
-### `yarn test`
+## Release
 
-Launches the test runner in the interactive watch mode.<br />
+A patch release can be rolled out instantly in production, whereas a minor/major release requires the Ghost monorepo to be updated and released. In either case, you need sufficient permissions to release `@tryghost` packages on NPM.
 
-## Publish
+If you're releasing new code that should not immediately go live _always_ use a minor or major version when publishing.
 
-Run `yarn ship` to publish new version of script.
+In order to have Ghost's e2e tests run against the new code on CI or to test the new code in staging, you need to publish to npm following the Minor / major release process below.
 
-`yarn ship` is an alias for `npm publish`
+### Patch release
 
-- Builds the script with latest code using `yarn build` (prePublish)
-- Publishes package on npm as `@tryghost/portal` and creates an unpkg link for script at https://unpkg.com/@tryghost/portal@VERSION
+1. Run `yarn ship` and select a patch version when prompted
+2. Merge the release commit to `main`
 
-(Core team only)
+### Minor / major release
+
+1. Run `yarn ship` and select a minor or major version when prompted
+2. Merge the release commit to `main`
+3. Wait until a new version of Ghost is released
+
+### JsDelivr cache
+If the CI doesn't clear JsDelivr cache to get the new version out instantly, you may want to do it yourself manually ([docs](https://www.notion.so/ghost/How-to-clear-jsDelivr-CDN-cache-2930bdbac02946eca07ac23ab3199bfa?pvs=4)). Typically, you'll need to open `https://purge.jsdelivr.net/ghost/portal@~${PORTAL_VERSION}/umd/portal.min.js` and
+`https://purge.jsdelivr.net/ghost/portal@~${PORTAL_VERSION}/umd/main.css` in your browser, where `PORTAL_VERSION` is the latest minor version in `ghost/core/core/shared/config/defaults.json` ([code](https://github.com/TryGhost/Ghost/blob/0aef3d3beeebcd79a4bfd3ad27e0ac67554b5744/ghost/core/core/shared/config/defaults.json#L185))
+
+# Copyright & License
+
+Copyright (c) 2013-2026 Ghost Foundation - Released under the [MIT license](LICENSE).

@@ -1,7 +1,25 @@
 import {MATCH_RELATION_OPTIONS} from './relation-options';
 
+const getOfferNameForColumn = (offer) => {
+    if (!offer) {
+        return null;
+    }
+
+    if (offer.redemption_type === 'retention') {
+        if (offer.cadence === 'month') {
+            return 'Monthly Retention';
+        }
+
+        if (offer.cadence === 'year') {
+            return 'Yearly Retention';
+        }
+    }
+
+    return offer.name;
+};
+
 export const OFFERS_FILTER = {
-    label: 'Offers', 
+    label: 'Offers',
     name: 'offer_redemptions',
     group: 'Subscription',
     relationOptions: MATCH_RELATION_OPTIONS,
@@ -10,7 +28,9 @@ export const OFFERS_FILTER = {
     getColumnValue: (member) => {
         return {
             class: 'gh-members-list-labels',
-            text: (member.subscriptions ?? []).map(label => label.offer?.name).join(', ')
+            text: (member.subscriptions ?? [])
+                .flatMap(sub => (sub.offer_redemptions ?? []).map(getOfferNameForColumn).filter(Boolean))
+                .join(', ')
         };
     }
 };

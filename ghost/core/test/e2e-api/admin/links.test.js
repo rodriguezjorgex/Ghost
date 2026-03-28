@@ -1,6 +1,7 @@
 const {agentProvider, fixtureManager, matchers} = require('../../utils/e2e-framework');
 const {anyContentVersion, anyObjectId, anyString, anyEtag, anyNumber} = matchers;
 const sinon = require('sinon');
+const config = require('../../../core/shared/config');
 
 const matchLink = {
     post_id: anyObjectId,
@@ -50,7 +51,7 @@ describe('Links API', function () {
         });
         const postId = siteLink.post_id;
         const originalTo = siteLink.link.to;
-        const filter = `post_id:${postId}+to:'${originalTo}'`;
+        const filter = `post_id:'${postId}'+to:'${originalTo}'`;
 
         // Wait minimum 2 seconds
         clock.tick(2 * 1000);
@@ -62,7 +63,7 @@ describe('Links API', function () {
                     action: 'updateLink',
                     meta: {
                         link: {
-                            to: 'http://127.0.0.1:2369/blog/emails/test?example=1'
+                            to: `${config.get('url')}/blog/emails/test?example=1`
                         }
                     }
                 }
@@ -99,7 +100,7 @@ describe('Links API', function () {
                         ...matchLink,
                         link: {
                             ...matchLink.link,
-                            to: 'http://127.0.0.1:2369/blog/emails/test?example=1&ref=Test-newsletter&attribution_type=post&attribution_id=618ba1ffbe2896088840a6df',
+                            to: `${config.get('url')}/blog/emails/test?example=1&ref=Test-newsletter&attribution_type=post&attribution_id=618ba1ffbe2896088840a6df`,
                             edited: true
                         }
                     },
@@ -107,7 +108,7 @@ describe('Links API', function () {
                         ...matchLink,
                         link: {
                             ...matchLink.link,
-                            to: 'http://127.0.0.1:2369/blog/emails/test?example=1&ref=Test-newsletter&attribution_type=post&attribution_id=618ba1ffbe2896088840a6df',
+                            to: `${config.get('url')}/blog/emails/test?example=1&ref=Test-newsletter&attribution_type=post&attribution_id=618ba1ffbe2896088840a6df`,
                             edited: true
                         }
                     }
@@ -122,7 +123,7 @@ describe('Links API', function () {
         });
         const postId = siteLink.post_id;
         const originalTo = siteLink.link.to;
-        const filter = `post_id:${postId}+to:'${originalTo}'`;
+        const filter = `post_id:'${postId}'+to:'${originalTo}'`;
 
         // Wait minimum 2 seconds
         clock.tick(2 * 1000);
@@ -187,7 +188,7 @@ describe('Links API', function () {
         });
         const postId = siteLink.post_id;
         const originalTo = 'https://empty.example.com';
-        const filter = `post_id:${postId}+to:'${originalTo}'`;
+        const filter = `post_id:'${postId}'+to:'${originalTo}'`;
         await agent
             .put(`links/bulk/?filter=${encodeURIComponent(filter)}`)
             .body({

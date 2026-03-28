@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const StripeService = require('@tryghost/members-stripe-service');
+const StripeService = require('./stripe-service');
 const logging = require('@tryghost/logging');
 const membersService = require('../members');
 const config = require('../../../shared/config');
@@ -11,6 +11,8 @@ const {getConfig} = require('./config');
 const settingsHelpers = require('../settings-helpers');
 const donationService = require('../donations');
 const staffService = require('../staff');
+const labs = require('../../../shared/labs');
+const settingsCache = require('../../../shared/settings-cache');
 
 async function configureApi() {
     const cfg = getConfig({settingsHelpers, config, urlUtils});
@@ -30,6 +32,7 @@ const debouncedConfigureApi = _.debounce(() => {
 }, 600);
 
 module.exports = new StripeService({
+    labs,
     membersService,
     models: _.pick(models, [
         'Product',
@@ -58,8 +61,15 @@ module.exports = new StripeService({
         }
     },
     donationService,
-    staffService
+    staffService,
+    settingsCache
 });
+
+function stripeSettingsChanged(model) {
+    if (['stripe_publishable_key', 'stripe_secret_key', 'stripe_connect_publishable_key', 'stripe_connect_secret_key'].includes(model.get('key'))) {
+        debouncedConfigureApi();
+    }
+}
 
 module.exports.init = async function init() {
     try {
@@ -67,9 +77,8 @@ module.exports.init = async function init() {
     } catch (err) {
         logging.error(err);
     }
-    events.on('settings.edited', function (model) {
-        if (['stripe_publishable_key', 'stripe_secret_key', 'stripe_connect_publishable_key', 'stripe_connect_secret_key'].includes(model.get('key'))) {
-            debouncedConfigureApi();
-        }
-    });
+
+    events
+        .removeListener('settings.edited', stripeSettingsChanged)
+        .on('settings.edited', stripeSettingsChanged);
 };

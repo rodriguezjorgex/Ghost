@@ -1,10 +1,12 @@
-const should = require('should');
+const assert = require('node:assert/strict');
+const {assertExists} = require('../../../../utils/assertions');
 const sinon = require('sinon');
 const nock = require('nock');
 const path = require('path');
 const errors = require('@tryghost/errors');
 const fs = require('fs');
-const ImageSize = require('../../../../../core/server/lib/image/ImageSize');
+const ImageSize = require('../../../../../core/server/lib/image/image-size');
+const probe = require('probe-image-size');
 
 describe('lib/image: image size', function () {
     // use a 1x1 gif in nock responses because it's really small and easy to work with
@@ -18,9 +20,9 @@ describe('lib/image: image size', function () {
     it('[success] should have an image size function', function () {
         const imageSize = new ImageSize({config: {
             get: () => {}
-        }, tpl: {}, storage: {}, storageUtils: {}, validator: {}, urlUtils: {}, request: {}});
-        should.exist(imageSize.getImageSizeFromUrl);
-        should.exist(imageSize.getImageSizeFromStoragePath);
+        }, tpl: {}, storage: {}, storageUtils: {}, validator: {}, urlUtils: {}, request: {}, probe});
+        assertExists(imageSize.getImageSizeFromUrl);
+        assertExists(imageSize.getImageSizeFromStoragePath);
     });
 
     describe('getImageSizeFromUrl', function () {
@@ -42,14 +44,14 @@ describe('lib/image: image size', function () {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => true
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url).then(function (res) {
-                requestMock.isDone().should.be.true();
-                should.exist(res);
-                res.width.should.be.equal(expectedImageObject.width);
-                res.height.should.be.equal(expectedImageObject.height);
-                res.url.should.be.equal(expectedImageObject.url);
+                assert.equal(requestMock.isDone(), true);
+                assertExists(res);
+                assert.equal(res.width, expectedImageObject.width);
+                assert.equal(res.height, expectedImageObject.height);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -77,14 +79,14 @@ describe('lib/image: image size', function () {
                     });
                 }
                 return Promise.reject();
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromUrl(url).then(function (res) {
-                requestMock.isDone().should.be.false();
-                should.exist(res);
-                res.width.should.be.equal(expectedImageObject.width);
-                res.height.should.be.equal(expectedImageObject.height);
-                res.url.should.be.equal(expectedImageObject.url);
+                assert.equal(requestMock.isDone(), false);
+                assertExists(res);
+                assert.equal(res.width, expectedImageObject.width);
+                assert.equal(res.height, expectedImageObject.height);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -107,14 +109,14 @@ describe('lib/image: image size', function () {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => true
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url).then(function (res) {
-                requestMock.isDone().should.be.true();
-                should.exist(res);
-                res.width.should.be.equal(expectedImageObject.width);
-                res.height.should.be.equal(expectedImageObject.height);
-                res.url.should.be.equal(expectedImageObject.url);
+                assert.equal(requestMock.isDone(), true);
+                assertExists(res);
+                assert.equal(res.width, expectedImageObject.width);
+                assert.equal(res.height, expectedImageObject.height);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -138,15 +140,15 @@ describe('lib/image: image size', function () {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => true
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url).then(function (res) {
-                requestMockNotFound.isDone().should.be.false();
-                requestMock.isDone().should.be.true();
-                should.exist(res);
-                res.width.should.be.equal(expectedImageObject.width);
-                res.height.should.be.equal(expectedImageObject.height);
-                res.url.should.be.equal(expectedImageObject.url);
+                assert.equal(requestMockNotFound.isDone(), false);
+                assert.equal(requestMock.isDone(), true);
+                assertExists(res);
+                assert.equal(res.width, expectedImageObject.width);
+                assert.equal(res.height, expectedImageObject.height);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -188,14 +190,14 @@ describe('lib/image: image size', function () {
                     });
                 }
                 return Promise.reject();
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromUrl(url).then(function (res) {
-                requestMock.isDone().should.be.true();
-                should.exist(res);
-                res.width.should.be.equal(expectedImageObject.width);
-                res.height.should.be.equal(expectedImageObject.height);
-                res.url.should.be.equal(expectedImageObject.url);
+                assert.equal(requestMock.isDone(), true);
+                assertExists(res);
+                assert.equal(res.width, expectedImageObject.width);
+                assert.equal(res.height, expectedImageObject.height);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -218,14 +220,14 @@ describe('lib/image: image size', function () {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => true
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url).then(function (res) {
-                requestMock.isDone().should.be.true();
-                should.exist(res);
-                res.width.should.be.equal(expectedImageObject.width);
-                res.height.should.be.equal(expectedImageObject.height);
-                res.url.should.be.equal(expectedImageObject.url);
+                assert.equal(requestMock.isDone(), true);
+                assertExists(res);
+                assert.equal(res.width, expectedImageObject.width);
+                assert.equal(res.height, expectedImageObject.height);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -254,15 +256,15 @@ describe('lib/image: image size', function () {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => true
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url).then(function (res) {
-                requestMock.isDone().should.be.true();
-                secondRequestMock.isDone().should.be.true();
-                should.exist(res);
-                res.width.should.be.equal(expectedImageObject.width);
-                res.height.should.be.equal(expectedImageObject.height);
-                res.url.should.be.equal(expectedImageObject.url);
+                assert.equal(requestMock.isDone(), true);
+                assert.equal(secondRequestMock.isDone(), true);
+                assertExists(res);
+                assert.equal(res.width, expectedImageObject.width);
+                assert.equal(res.height, expectedImageObject.height);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -300,19 +302,70 @@ describe('lib/image: image size', function () {
             }, validator: {}, urlUtils: {
                 urlFor: urlForStub,
                 getSubdir: urlGetSubdirStub
-            }, request: {}});
+            }, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url).then(function (res) {
-                requestMock.isDone().should.be.false();
-                should.exist(res);
-                should.exist(res.width);
-                res.width.should.be.equal(expectedImageObject.width);
-                should.exist(res.height);
-                res.height.should.be.equal(expectedImageObject.height);
-                should.exist(res.url);
-                res.url.should.be.equal(expectedImageObject.url);
+                assert.equal(requestMock.isDone(), false);
+                assertExists(res);
+                assertExists(res.width);
+                assert.equal(res.width, expectedImageObject.width);
+                assertExists(res.height);
+                assert.equal(res.height, expectedImageObject.height);
+                assertExists(res.url);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
+        });
+
+        it('should use storage for local URL and HTTP for CDN URL', async function () {
+            const localImageUrl = 'https://site.com/content/images/image.jpg';
+            const cdnImageUrl = 'https://cdn.com/uuid/content/images/image.jpg';
+            const expectedLocalDimensions = {width: 100, height: 100};
+            const fixturePath = path.join(__dirname, '../../../../utils/fixtures/images/favicon.png');
+
+            const cdnRequestMock = nock('https://cdn.com')
+                .get('/uuid/content/images/image.jpg')
+                .reply(200, GIF1x1);
+
+            const storageReadSpy = sinon.spy(() => {
+                return fs.promises.readFile(fixturePath);
+            });
+
+            const imageSize = new ImageSize({
+                config: {
+                    get: () => {}
+                },
+                tpl: {},
+                storage: {
+                    getStorage: () => ({
+                        read: storageReadSpy
+                    })
+                },
+                storageUtils: {
+                    isLocalImage: imagePath => imagePath === localImageUrl,
+                    getLocalImagesStoragePath: () => 'ignored-by-test'
+                },
+                validator: {
+                    isURL: () => true
+                },
+                urlUtils: {
+                    urlFor: sinon.stub().withArgs('image').returns(localImageUrl),
+                    getSubdir: sinon.stub().returns('')
+                },
+                request: {},
+                probe
+            });
+
+            const localResult = await imageSize.getImageSizeFromUrl(localImageUrl);
+            assert.equal(localResult.url, localImageUrl);
+            assert.equal(localResult.width, expectedLocalDimensions.width);
+            assert.equal(localResult.height, expectedLocalDimensions.height);
+            sinon.assert.calledOnce(storageReadSpy);
+
+            const cdnResult = await imageSize.getImageSizeFromUrl(cdnImageUrl);
+            assert.equal(cdnResult.url, cdnImageUrl);
+            assert.equal(cdnRequestMock.isDone(), true);
+            sinon.assert.calledOnce(storageReadSpy);
         });
 
         it('[failure] can handle an error with statuscode not 200 (probe-image-size)', function (done) {
@@ -328,14 +381,14 @@ describe('lib/image: image size', function () {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => true
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url)
                 .catch(function (err) {
-                    requestMock.isDone().should.be.true();
-                    should.exist(err);
-                    err.errorType.should.be.equal('NotFoundError');
-                    err.message.should.be.equal('Image not found.');
+                    assert.equal(requestMock.isDone(), true);
+                    assertExists(err);
+                    assert.equal(err.errorType, 'NotFoundError');
+                    assert.equal(err.message, 'Image not found.');
                     done();
                 }).catch(done);
         });
@@ -366,14 +419,14 @@ describe('lib/image: image size', function () {
                     return Promise.reject(new NotFound());
                 }
                 return Promise.reject();
-            }});
+            }}, probe);
 
             imageSize.getImageSizeFromUrl(url)
                 .catch(function (err) {
-                    requestMock.isDone().should.be.false();
-                    should.exist(err);
-                    err.errorType.should.be.equal('NotFoundError');
-                    err.message.should.be.equal('Image not found.');
+                    assert.equal(requestMock.isDone(), false);
+                    assertExists(err);
+                    assert.equal(err.errorType, 'NotFoundError');
+                    assert.equal(err.message, 'Image not found.');
                     done();
                 }).catch(done);
         });
@@ -387,18 +440,18 @@ describe('lib/image: image size', function () {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => false
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url)
                 .catch(function (err) {
-                    should.exist(err);
-                    err.errorType.should.be.equal('InternalServerError');
-                    err.message.should.be.equal('URL empty or invalid.');
+                    assertExists(err);
+                    assert.equal(err.errorType, 'InternalServerError');
+                    assert.equal(err.message, 'URL empty or invalid.');
                     done();
                 }).catch(done);
         });
 
-        it('[failure] will timeout', function (done) {
+        it('[failure] will handle responses timing out', function (done) {
             const url = 'https://static.wixstatic.com/media/355241_d31358572a2542c5a44738ddcb59e7ea.jpg_256';
 
             const requestMock = nock('https://static.wixstatic.com')
@@ -409,21 +462,25 @@ describe('lib/image: image size', function () {
             const imageSize = new ImageSize({config: {
                 get: (key) => {
                     if (key === 'times:getImageSizeTimeoutInMS') {
-                        return 1;
+                        return 50;
                     }
                 }
             }, tpl: {}, storage: {}, storageUtils: {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => true
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {},
+            probe(reqUrl, options) {
+                // simulate probe the request timing out by probe's option
+                return probe(reqUrl, {...options, response_timeout: 1});
+            }});
 
             imageSize.getImageSizeFromUrl(url)
                 .catch(function (err) {
-                    requestMock.isDone().should.be.true();
-                    should.exist(err);
-                    err.errorType.should.be.equal('InternalServerError');
-                    err.message.should.be.equal('Request timed out.');
+                    assert.equal(requestMock.isDone(), true);
+                    assertExists(err);
+                    assert.equal(err.errorType, 'InternalServerError');
+                    assert.equal(err.message, 'Request timed out.');
                     done();
                 }).catch(done);
         });
@@ -441,16 +498,16 @@ describe('lib/image: image size', function () {
                 isLocalImage: () => false
             }, validator: {
                 isURL: () => true
-            }, urlUtils: {}, request: {}});
+            }, urlUtils: {}, request: {}, probe});
 
             imageSize.getImageSizeFromUrl(url)
                 .then(() => {
-                    true.should.be.false('succeeded when expecting failure');
+                    assert.equal(true, false, 'succeeded when expecting failure');
                 })
                 .catch(function (err) {
-                    requestMock.isDone().should.be.true();
-                    should.exist(err);
-                    err.errorType.should.be.equal('InternalServerError');
+                    assert.equal(requestMock.isDone(), true);
+                    assertExists(err);
+                    assert.equal(err.errorType, 'InternalServerError');
                     done();
                 }).catch(done);
         });
@@ -475,16 +532,16 @@ describe('lib/image: image size', function () {
                     });
                 }
                 return Promise.reject();
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromUrl(url)
                 .then(() => {
-                    true.should.be.false('succeeded when expecting failure');
+                    assert.equal(true, false, 'succeeded when expecting failure');
                 })
                 .catch(function (err) {
-                    requestMock.isDone().should.be.false();
-                    should.exist(err);
-                    err.errorType.should.be.equal('InternalServerError');
+                    assert.equal(requestMock.isDone(), false);
+                    assertExists(err);
+                    assert.equal(err.errorType, 'InternalServerError');
                     done();
                 }).catch(done);
         });
@@ -500,13 +557,45 @@ describe('lib/image: image size', function () {
                 isURL: () => true
             }, urlUtils: {}, request: () => {
                 return Promise.reject({});
+            }, probe});
+
+            imageSize.getImageSizeFromUrl(url)
+                .catch(function (err) {
+                    assertExists(err);
+                    assert.equal(err.errorType, 'InternalServerError');
+                    assert.equal(err.message, 'Unknown Request error.');
+                    done();
+                }).catch(done);
+        });
+
+        it('[failure] handles probe being unresponsive', function (done) {
+            const url = 'http://img.stockfresh.com/files/f/feedough/x/11/1540353_20925115.jpg';
+            const requestMock = nock('http://img.stockfresh.com')
+                .get('/files/f/feedough/x/11/1540353_20925115.jpg')
+                .reply(200, GIF1x1);
+
+            const imageSize = new ImageSize({config: {
+                get: (key) => {
+                    if (key === 'times:getImageSizeTimeoutInMS') {
+                        return 1;
+                    }
+                }
+            }, tpl: {}, storage: {}, storageUtils: {
+                isLocalImage: () => false
+            }, validator: {
+                isURL: () => true
+            }, urlUtils: {}, request: {},
+            probe(reqUrl, options) {
+                // simulate probe being unresponsive by making the timeout longer than the request
+                return probe(reqUrl, {...options, response_timeout: 50});
             }});
 
             imageSize.getImageSizeFromUrl(url)
                 .catch(function (err) {
-                    should.exist(err);
-                    err.errorType.should.be.equal('InternalServerError');
-                    err.message.should.be.equal('Unknown Request error.');
+                    assert.equal(requestMock.isDone(), true);
+                    assertExists(err);
+                    assert.equal(err.errorType, 'InternalServerError');
+                    assert.equal(err.message, 'Probe unresponsive.');
                     done();
                 }).catch(done);
         });
@@ -542,16 +631,16 @@ describe('lib/image: image size', function () {
                 getSubdir: urlGetSubdirStub
             }, request: () => {
                 return Promise.reject({});
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromStoragePath(url).then(function (res) {
-                should.exist(res);
-                should.exist(res.width);
-                res.width.should.be.equal(expectedImageObject.width);
-                should.exist(res.height);
-                res.height.should.be.equal(expectedImageObject.height);
-                should.exist(res.url);
-                res.url.should.be.equal(expectedImageObject.url);
+                assertExists(res);
+                assertExists(res.width);
+                assert.equal(res.width, expectedImageObject.width);
+                assertExists(res.height);
+                assert.equal(res.height, expectedImageObject.height);
+                assertExists(res.url);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -585,16 +674,16 @@ describe('lib/image: image size', function () {
                 getSubdir: urlGetSubdirStub
             }, request: () => {
                 return Promise.reject({});
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromStoragePath(url).then(function (res) {
-                should.exist(res);
-                should.exist(res.width);
-                res.width.should.be.equal(expectedImageObject.width);
-                should.exist(res.height);
-                res.height.should.be.equal(expectedImageObject.height);
-                should.exist(res.url);
-                res.url.should.be.equal(expectedImageObject.url);
+                assertExists(res);
+                assertExists(res.width);
+                assert.equal(res.width, expectedImageObject.width);
+                assertExists(res.height);
+                assert.equal(res.height, expectedImageObject.height);
+                assertExists(res.url);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -628,16 +717,16 @@ describe('lib/image: image size', function () {
                 getSubdir: urlGetSubdirStub
             }, request: () => {
                 return Promise.reject({});
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromStoragePath(url).then(function (res) {
-                should.exist(res);
-                should.exist(res.width);
-                res.width.should.be.equal(expectedImageObject.width);
-                should.exist(res.height);
-                res.height.should.be.equal(expectedImageObject.height);
-                should.exist(res.url);
-                res.url.should.be.equal(expectedImageObject.url);
+                assertExists(res);
+                assertExists(res.width);
+                assert.equal(res.width, expectedImageObject.width);
+                assertExists(res.height);
+                assert.equal(res.height, expectedImageObject.height);
+                assertExists(res.url);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -671,16 +760,16 @@ describe('lib/image: image size', function () {
                 getSubdir: urlGetSubdirStub
             }, request: () => {
                 return Promise.reject({});
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromStoragePath(url).then(function (res) {
-                should.exist(res);
-                should.exist(res.width);
-                res.width.should.be.equal(expectedImageObject.width);
-                should.exist(res.height);
-                res.height.should.be.equal(expectedImageObject.height);
-                should.exist(res.url);
-                res.url.should.be.equal(expectedImageObject.url);
+                assertExists(res);
+                assertExists(res.width);
+                assert.equal(res.width, expectedImageObject.width);
+                assertExists(res.height);
+                assert.equal(res.height, expectedImageObject.height);
+                assertExists(res.url);
+                assert.equal(res.url, expectedImageObject.url);
                 done();
             }).catch(done);
         });
@@ -711,12 +800,12 @@ describe('lib/image: image size', function () {
                 getSubdir: urlGetSubdirStub
             }, request: () => {
                 return Promise.reject({});
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromStoragePath(url)
                 .catch(function (err) {
-                    should.exist(err);
-                    (err instanceof errors.NotFoundError).should.eql(true);
+                    assertExists(err);
+                    assert.equal((err instanceof errors.NotFoundError), true);
                     done();
                 }).catch(done);
         });
@@ -746,11 +835,11 @@ describe('lib/image: image size', function () {
                 getSubdir: urlGetSubdirStub
             }, request: () => {
                 return Promise.reject({});
-            }});
+            }, probe});
 
             imageSize.getImageSizeFromStoragePath(url)
                 .catch(function (err) {
-                    should.exist(err);
+                    assertExists(err);
                     done();
                 }).catch(done);
         });
